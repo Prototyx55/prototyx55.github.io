@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>LoL : Smash or Pass</title>
+	<style>
+		* {
+			box-sizing: border-box;
+			margin: 0;
+			padding: 0;
+			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+		}
+
+		body {
+			background-color: #0a0a0c;
+			color: #f0e6d2;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			height: 100vh;
+			overflow: hidden;
+			position: relative;
+		}
+
+		#top-controls {
+			position: absolute;
+			top: 20px;
+			right: 20px;
+			display: flex;
+			gap: 10px;
+			z-index: 1000;
+		}
+
+		.top-btn {
+			background: #1a1a1c;
+			color: #c8aa6e;
+			border: 1px solid #c8aa6e;
+			padding: 10px 15px;
+			border-radius: 8px;
+			font-weight: bold;
+			cursor: pointer;
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+			transition: 0.2s;
+		}
+
+		.top-btn:hover {
+			background: #c8aa6e;
+			color: #0a0a0c;
+		}
+
+		.top-btn svg {
+			width: 16px;
+			height: 16px;
+		}
+
+		h1 {
+			margin-bottom: 5px;
+			color: #c8aa6e;
+			text-transform: uppercase;
+			letter-spacing: 2px;
+			text-shadow: 0 0 10px rgba(200, 170, 110, 0.5);
+			text-align: center;
+		}
+
+		#subtitle {
+			font-size: 16px;
+			color: #aaa;
+			margin-bottom: 10px;
+			height: 20px;
+			font-weight: bold;
+		}
+
+		#game-area {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			width: 100%;
+			height: 100%;
+		}
+
+		/* Carte Principale */
+		.tinder-container {
+			position: relative;
+			width: 308px;
+			height: 500px;
+			perspective: 1000px;
+		}
+
+		.card {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			border-radius: 15px;
+			background-size: cover;
+			background-position: top center;
+			box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+			transition: transform 0.3s ease, opacity 0.3s ease;
+			cursor: grab;
+			overflow: hidden;
+			display: flex;
+			align-items: flex-end;
+			border: 2px solid #c8aa6e;
+			background-color: #1a1a1c;
+		}
+
+		.card.dragging {
+			transition: none;
+			cursor: grabbing;
+		}
+
+		.card.processing {
+			pointer-events: none;
+		}
+
+		.champ-name {
+			width: 100%;
+			padding: 20px;
+			background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
+			font-size: 28px;
+			font-weight: bold;
+			text-shadow: 2px 2px 4px #000;
+			pointer-events: none;
+			text-align: center;
+		}
+
+		.buttons {
+			display: flex;
+			gap: 40px;
+			margin-top: 20px;
+			z-index: 100;
+		}
+
+		.btn {
+			width: 65px;
+			height: 65px;
+			border-radius: 50%;
+			border: none;
+			cursor: pointer;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+			transition: transform 0.1s, background 0.2s;
+			color: white;
+		}
+
+		.btn:active {
+			transform: scale(0.9);
+		}
+
+		.btn-pass {
+			background-color: #ff4b4b;
+		}
+
+		.btn-pass:hover {
+			background-color: #ff2a2a;
+		}
+
+		.btn-smash {
+			background-color: #4cd964;
+		}
+
+		.btn-smash:hover {
+			background-color: #3cb34f;
+		}
+
+		/* Section Historique et "Tas de cartes" */
+		#history-section {
+			margin-top: 25px;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 8px;
+			visibility: hidden;
+		}
+
+		.history-label {
+			font-size: 11px;
+			color: #888;
+			text-transform: uppercase;
+			letter-spacing: 1px;
+			font-weight: bold;
+		}
+
+		.history-flex {
+			display: flex;
+			align-items: center;
+			gap: 30px;
+		}
+
+		.time-btn {
+			background: #1a1a1c;
+			color: #fff;
+			border: 1px solid #444;
+			width: 40px;
+			height: 40px;
+			border-radius: 50%;
+			cursor: pointer;
+			transition: 0.2s;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			z-index: 10;
+		}
+
+		.time-btn:hover:not(:disabled) {
+			background: #333;
+			border-color: #c8aa6e;
+			color: #c8aa6e;
+		}
+
+		.time-btn:disabled {
+			opacity: 0.2;
+			cursor: not-allowed;
+		}
+
+		#mini-history-container {
+			position: relative;
+			width: 70px;
+			height: 110px;
+		}
+
+		#mini-placeholder {
+			width: 100%;
+			height: 100%;
+			border-radius: 8px;
+			border: 2px dashed #333;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			color: #444;
+			font-size: 20px;
+			position: absolute;
+			z-index: 0;
+		}
+
+		.mini-card-item {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			border-radius: 8px;
+			background-size: cover;
+			background-position: top center;
+			border: 2px solid #333;
+			box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+			transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+		}
+
+		.mini-card-item.smash {
+			border-color: #4cd964;
+			box-shadow: 0 0 15px rgba(76, 217, 100, 0.3);
+		}
+
+		.mini-card-item.pass {
+			border-color: #ff4b4b;
+			box-shadow: 0 0 15px rgba(255, 75, 75, 0.3);
+		}
+
+		.mini-icon {
+			position: absolute;
+			bottom: -8px;
+			right: -8px;
+			width: 28px;
+			height: 28px;
+			border-radius: 50%;
+			align-items: center;
+			justify-content: center;
+			color: white;
+			border: 3px solid #0a0a0c;
+			z-index: 10;
+		}
+
+		.mini-icon.smash {
+			background: #4cd964;
+		}
+
+		.mini-icon.pass {
+			background: #ff4b4b;
+		}
+
+		.mini-icon svg {
+			width: 14px;
+			height: 14px;
+		}
+
+		/* Voile sombre pour les cartes du dessous */
+		.mini-overlay {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background: rgba(0, 0, 0, 0.5);
+			border-radius: 6px;
+		}
+
+		/* Écran de Statistiques */
+		#stats-screen {
+			display: none;
+			flex-direction: column;
+			align-items: center;
+			width: 100%;
+			height: 100%;
+			padding-top: 80px;
+		}
+
+		.stats-container {
+			background: #111;
+			padding: 20px;
+			border-radius: 15px;
+			border: 2px solid #c8aa6e;
+			width: 95%;
+			max-width: 600px;
+			max-height: 80vh;
+			overflow-y: auto;
+			text-align: center;
+		}
+
+		.stat-columns {
+			display: flex;
+			justify-content: space-between;
+			margin-top: 20px;
+			gap: 10px;
+		}
+
+		.stat-col {
+			width: 48%;
+			background: #1a1a1c;
+			padding: 15px;
+			border-radius: 10px;
+		}
+
+		.stat-col h3 {
+			margin-bottom: 15px;
+			position: sticky;
+			top: 0;
+			background: #1a1a1c;
+			padding-bottom: 10px;
+			z-index: 10;
+		}
+
+		.stat-list {
+			list-style: none;
+			text-align: left;
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
+		}
+
+		.stat-item {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			padding: 5px;
+			background: #2a2a2c;
+			border-radius: 8px;
+			font-size: 14px;
+		}
+
+		.stat-item img {
+			width: 40px;
+			height: 40px;
+			border-radius: 5px;
+		}
+
+		#loading-bar-container {
+			width: 300px;
+			height: 10px;
+			background: #333;
+			border-radius: 5px;
+			margin-top: 10px;
+			overflow: hidden;
+			display: none;
+		}
+
+		#loading-bar {
+			width: 0%;
+			height: 100%;
+			background: #c8aa6e;
+			transition: width 0.2s;
+		}
+
+		#shortcuts-info {
+			position: absolute;
+			bottom: 20px;
+			right: 20px;
+			background: rgba(0, 0, 0, 0.5);
+			padding: 15px;
+			border-radius: 10px;
+			border: 1px solid #333;
+			font-size: 13px;
+			color: #aaa;
+			text-align: left;
+			display: none;
+		}
+
+		#shortcuts-info b {
+			color: #c8aa6e;
+		}
+
+		.shortcut-row {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			margin-top: 8px;
+		}
+
+		.key {
+			background: #333;
+			color: #fff;
+			padding: 2px 6px;
+			border-radius: 4px;
+			border: 1px solid #555;
+			font-size: 12px;
+			min-width: 25px;
+			text-align: center;
+			font-weight: bold;
+		}
+	</style>
+</head>
+
+<body>
+
+	<div id="top-controls" style="display: none;">
+		<button id="btn-reset" class="top-btn">
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+				stroke-linejoin="round">
+				<polyline points="3 6 5 6 21 6"></polyline>
+				<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+			</svg>
+			Reset
+		</button>
+		<button id="btn-stats-toggle" class="top-btn">
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+				stroke-linejoin="round">
+				<line x1="18" y1="20" x2="18" y2="10"></line>
+				<line x1="12" y1="20" x2="12" y2="4"></line>
+				<line x1="6" y1="20" x2="6" y2="14"></line>
+			</svg>
+			Stats
+		</button>
+	</div>
+
+	<div id="game-area">
+		<h1 id="main-title">Smash or Pass</h1>
+		<div id="subtitle">Initialisation de l'API...</div>
+
+		<div id="loading-bar-container">
+			<div id="loading-bar"></div>
+		</div>
+
+		<div class="tinder-container" id="card-container" style="display: none;"></div>
+
+		<div class="buttons" id="controls" style="display: none;">
+			<button class="btn btn-pass" id="btn-pass" title="Pass (Flèche Gauche)">
+				<svg viewBox="0 0 24 24" width="30" height="30" stroke="currentColor" stroke-width="3" fill="none"
+					stroke-linecap="round" stroke-linejoin="round">
+					<path d="M18 6L6 18M6 6l12 12" />
+				</svg>
+			</button>
+			<button class="btn btn-smash" id="btn-smash" title="Smash (Flèche Droite)">
+				<svg viewBox="0 0 24 24" width="30" height="30" stroke="currentColor" stroke-width="2" fill="none"
+					stroke-linecap="round" stroke-linejoin="round">
+					<path
+						d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+				</svg>
+			</button>
+		</div>
+
+		<div id="history-section">
+			<span class="history-label">Pile Historique</span>
+			<div class="history-flex">
+				<button id="btn-undo" class="time-btn" title="Annuler (Flèche Bas)" disabled>
+					<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"
+						stroke-linecap="round" stroke-linejoin="round">
+						<line x1="12" y1="5" x2="12" y2="19"></line>
+						<polyline points="19 12 12 19 5 12"></polyline>
+					</svg>
+				</button>
+
+				<div id="mini-history-container">
+					<div id="mini-placeholder">?</div>
+				</div>
+
+				<button id="btn-redo" class="time-btn" title="Refaire (Flèche Haut)" disabled>
+					<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"
+						stroke-linecap="round" stroke-linejoin="round">
+						<line x1="12" y1="19" x2="12" y2="5"></line>
+						<polyline points="5 12 12 5 19 12"></polyline>
+					</svg>
+				</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="shortcuts-info">
+		<b>Raccourcis Clavier</b>
+		<div class="shortcut-row"><span class="key">◀</span> Pass &nbsp; | &nbsp; <span class="key">▶</span> Smash</div>
+		<div class="shortcut-row"><span class="key">▼</span> Annuler | &nbsp; <span class="key">▲</span> Refaire</div>
+	</div>
+
+	<div id="stats-screen">
+		<div class="stats-container">
+			<h2>Vos Statistiques</h2>
+			<div class="stat-columns">
+				<div class="stat-col">
+					<h3 style="color: #ff4b4b;">Passed (❌)</h3>
+					<ul class="stat-list" id="pass-list"></ul>
+				</div>
+				<div class="stat-col">
+					<h3 style="color: #4cd964;">Smashed (💖)</h3>
+					<ul class="stat-list" id="smash-list"></ul>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script>
+		const container = document.getElementById('card-container');
+		const gameArea = document.getElementById('game-area');
+		const statsScreen = document.getElementById('stats-screen');
+		const controls = document.getElementById('controls');
+		const subtitle = document.getElementById('subtitle');
+		const topControls = document.getElementById('top-controls');
+		const btnStatsToggle = document.getElementById('btn-stats-toggle');
+		const btnReset = document.getElementById('btn-reset');
+		const shortcutsInfo = document.getElementById('shortcuts-info');
+
+		const historySection = document.getElementById('history-section');
+		const btnUndo = document.getElementById('btn-undo');
+		const btnRedo = document.getElementById('btn-redo');
+		const miniHistoryContainer = document.getElementById('mini-history-container');
+
+		const svgSmash = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
+		const svgPass = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>`;
+
+		let remainingChampions = [];
+		let smashed = [];
+		let passed = [];
+		let historyStack = [];
+		let redoStack = [];
+
+		let isDragging = false;
+		let startX = 0, currentX = 0;
+		let isStatsOpen = false;
+
+		// Angles aléatoires pré-définis pour donner l'effet de cartes jetées
+		const pileAngles = [-12, 8, -6, 15, -9, 5];
+
+		function saveSession() {
+			const sessionData = { remainingChampions, smashed, passed, historyStack, redoStack };
+			localStorage.setItem('lol-smash-pass-data', JSON.stringify(sessionData));
+		}
+
+		function loadSession() {
+			const saved = localStorage.getItem('lol-smash-pass-data');
+			if (saved) {
+				const data = JSON.parse(saved);
+				remainingChampions = data.remainingChampions || [];
+				smashed = data.smashed || [];
+				passed = data.passed || [];
+				historyStack = data.historyStack || [];
+				redoStack = data.redoStack || [];
+				return true;
+			}
+			return false;
+		}
+
+		btnReset.addEventListener('click', () => {
+			if (confirm("Veux-tu vraiment réinitialiser ta session ? Tu vas tout recommencer depuis le début.")) {
+				localStorage.removeItem('lol-smash-pass-data');
+				location.reload();
+			}
+		});
+
+		async function fetchChampions() {
+			try {
+				const versionRes = await fetch('https://ddragon.leagueoflegends.com/api/versions.json');
+				const versions = await versionRes.json();
+				const latestVersion = versions[0];
+
+				const champRes = await fetch(`https://ddragon.leagueoflegends.com/cdn/${latestVersion}/data/fr_FR/champion.json`);
+				const champData = await champRes.json();
+
+				if (!loadSession()) {
+					const champsObj = champData.data;
+					let tempDeck = [];
+					for (let key in champsObj) {
+						const champ = champsObj[key];
+						tempDeck.push({
+							id: champ.id,
+							name: champ.name,
+							imgLoading: `https://ddragon.leagueoflegends.com/cdn/img/champion/loading/${champ.id}_0.jpg`,
+							imgSquare: `https://ddragon.leagueoflegends.com/cdn/${latestVersion}/img/champion/${champ.id}.png`
+						});
+					}
+					tempDeck.sort(() => Math.random() - 0.5);
+					remainingChampions = tempDeck;
+					saveSession();
+				}
+
+				subtitle.innerText = "Téléchargement des images...";
+				document.getElementById('loading-bar-container').style.display = 'block';
+
+				let loadedCount = 0;
+				if (remainingChampions.length === 0) {
+					launchGame();
+				} else {
+					await Promise.all(remainingChampions.map(champ => {
+						return new Promise(resolve => {
+							const img = new Image();
+							img.src = champ.imgLoading;
+							img.onload = img.onerror = () => {
+								loadedCount++;
+								let percent = Math.round((loadedCount / remainingChampions.length) * 100);
+								document.getElementById('loading-bar').style.width = `${percent}%`;
+								subtitle.innerText = `Préchargement... ${percent}%`;
+								resolve();
+							};
+						});
+					}));
+					launchGame();
+				}
+			} catch (error) {
+				console.error(error);
+				subtitle.innerText = "Erreur de connexion à l'API Riot.";
+				subtitle.style.color = "#ff4b4b";
+			}
+		}
+
+		function launchGame() {
+			document.getElementById('loading-bar-container').style.display = 'none';
+			topControls.style.display = 'flex';
+			controls.style.display = 'flex';
+			container.style.display = 'block';
+			historySection.style.visibility = 'visible';
+			shortcutsInfo.style.display = 'block';
+
+			initCards();
+			updateHistoryUI();
+			updateCounter();
+			checkEnd();
+		}
+
+		function createCardDOM(champ) {
+			const card = document.createElement('div');
+			card.classList.add('card');
+			card.style.backgroundImage = `url('${champ.imgLoading}')`;
+			card.innerHTML = `<div class="champ-name">${champ.name}</div>`;
+			card.champData = champ;
+			card.addEventListener('mousedown', dragStart);
+			card.addEventListener('touchstart', dragStart, { passive: true });
+			return card;
+		}
+
+		function initCards() {
+			container.innerHTML = '';
+			remainingChampions.forEach(champ => {
+				container.appendChild(createCardDOM(champ));
+			});
+		}
+
+		function updateCounter() {
+			const restant = remainingChampions.length;
+			subtitle.innerText = `${restant} Champion${restant > 1 ? 's' : ''} restant${restant > 1 ? 's' : ''}`;
+		}
+
+		function checkEnd() {
+			if (remainingChampions.length === 0) {
+				gameArea.style.display = 'none';
+				statsScreen.style.display = 'flex';
+				btnStatsToggle.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Retour au Jeu`;
+				isStatsOpen = true;
+				renderStats();
+			}
+		}
+
+		function dragStart(e) {
+			const activeCards = container.querySelectorAll('.card:not(.processing)');
+			if (activeCards.length === 0 || e.target !== activeCards[activeCards.length - 1] || isStatsOpen) return;
+			isDragging = true;
+			startX = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
+			e.target.classList.add('dragging');
+
+			document.addEventListener('mousemove', drag);
+			document.addEventListener('touchmove', drag, { passive: true });
+			document.addEventListener('mouseup', dragEnd);
+			document.addEventListener('touchend', dragEnd);
+		}
+
+		function drag(e) {
+			if (!isDragging) return;
+			const x = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
+			currentX = x - startX;
+			const activeCards = container.querySelectorAll('.card:not(.processing)');
+			if (activeCards.length > 0) activeCards[activeCards.length - 1].style.transform = `translateX(${currentX}px) rotate(${currentX * 0.05}deg)`;
+		}
+
+		function dragEnd(e) {
+			if (!isDragging) return;
+			isDragging = false;
+
+			const activeCards = container.querySelectorAll('.card:not(.processing)');
+			if (activeCards.length === 0) return;
+
+			const card = activeCards[activeCards.length - 1];
+			card.classList.remove('dragging');
+
+			document.removeEventListener('mousemove', drag);
+			document.removeEventListener('touchmove', drag);
+			document.removeEventListener('mouseup', dragEnd);
+			document.removeEventListener('touchend', dragEnd);
+
+			if (currentX > 100) handleChoice('smash');
+			else if (currentX < -100) handleChoice('pass');
+			else card.style.transform = `translateX(0px) rotate(0deg)`;
+			currentX = 0;
+		}
+
+		function handleChoice(action, isRedo = false) {
+			const activeCards = container.querySelectorAll('.card:not(.processing)');
+			if (activeCards.length === 0) return;
+
+			const card = activeCards[activeCards.length - 1];
+			const champ = card.champData;
+
+			card.classList.add('processing');
+
+			if (!isRedo) redoStack = [];
+
+			remainingChampions.pop();
+			historyStack.push({ action: action, champ: champ });
+
+			if (action === 'smash') {
+				smashed.push(champ);
+				card.style.transform = `translateX(${window.innerWidth}px) rotate(30deg)`;
+			} else {
+				passed.push(champ);
+				card.style.transform = `translateX(-${window.innerWidth}px) rotate(-30deg)`;
+			}
+			card.style.opacity = '0';
+
+			saveSession();
+			updateCounter();
+			updateHistoryUI();
+
+			setTimeout(() => {
+				if (card.parentNode === container) card.remove();
+				checkEnd();
+			}, 300);
+		}
+
+		function undoAction() {
+			if (historyStack.length === 0 || isStatsOpen) return;
+
+			const lastAction = historyStack.pop();
+
+			if (lastAction.action === 'smash') smashed = smashed.filter(c => c.id !== lastAction.champ.id);
+			else passed = passed.filter(c => c.id !== lastAction.champ.id);
+
+			redoStack.push(lastAction);
+			remainingChampions.push(lastAction.champ);
+
+			const card = createCardDOM(lastAction.champ);
+			container.appendChild(card);
+
+			card.style.transform = lastAction.action === 'smash' ? `translateX(${window.innerWidth}px) rotate(30deg)` : `translateX(-${window.innerWidth}px) rotate(-30deg)`;
+			card.style.opacity = '0';
+
+			void card.offsetWidth;
+
+			card.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s';
+			card.style.transform = 'translateX(0px) rotate(0deg)';
+			card.style.opacity = '1';
+
+			saveSession();
+			updateHistoryUI();
+			updateCounter();
+		}
+
+		function redoAction() {
+			if (redoStack.length === 0 || isStatsOpen) return;
+			const nextAction = redoStack.pop();
+			const card = createCardDOM(nextAction.champ);
+			container.appendChild(card);
+			void card.offsetWidth;
+			handleChoice(nextAction.action, true);
+		}
+
+		function updateHistoryUI() {
+			// Nettoyer la pile existante (on garde le div en pointillé s'il y est)
+			miniHistoryContainer.innerHTML = '<div id="mini-placeholder">?</div>';
+
+			if (historyStack.length > 0) {
+				document.getElementById('mini-placeholder').style.display = 'none';
+
+				// On prend jusqu'à 4 cartes pour former la pile
+				const maxPileCards = 4;
+				const startIndex = Math.max(0, historyStack.length - maxPileCards);
+				const pileToRender = historyStack.slice(startIndex);
+
+				pileToRender.forEach((item, index) => {
+					const isTopCard = index === pileToRender.length - 1;
+
+					const cardDiv = document.createElement('div');
+					cardDiv.className = `mini-card-item ${isTopCard ? item.action : ''}`;
+					cardDiv.style.backgroundImage = `url('${item.champ.imgLoading}')`;
+					cardDiv.style.zIndex = index + 1;
+
+					// Rotation des cartes
+					if (!isTopCard) {
+						// Utilise un angle pseudo-aléatoire mais constant pour chaque couche
+						const angle = pileAngles[(startIndex + index) % pileAngles.length];
+						cardDiv.style.transform = `rotate(${angle}deg)`;
+
+						// Ajoute le voile sombre pour la profondeur
+						const overlay = document.createElement('div');
+						overlay.className = 'mini-overlay';
+						cardDiv.appendChild(overlay);
+					} else {
+						// La carte du dessus est droite et reçoit l'icône de statut
+						cardDiv.style.transform = `rotate(0deg)`;
+						const iconBadge = document.createElement('div');
+						iconBadge.className = `mini-icon ${item.action}`;
+						iconBadge.innerHTML = item.action === 'smash' ? svgSmash : svgPass;
+						iconBadge.style.display = 'flex';
+						cardDiv.appendChild(iconBadge);
+					}
+
+					miniHistoryContainer.appendChild(cardDiv);
+				});
+			} else {
+				document.getElementById('mini-placeholder').style.display = 'flex';
+			}
+
+			btnUndo.disabled = historyStack.length === 0;
+			btnRedo.disabled = redoStack.length === 0;
+		}
+
+		document.getElementById('btn-pass').addEventListener('click', () => { if (!isStatsOpen) handleChoice('pass') });
+		document.getElementById('btn-smash').addEventListener('click', () => { if (!isStatsOpen) handleChoice('smash') });
+		btnUndo.addEventListener('click', undoAction);
+		btnRedo.addEventListener('click', redoAction);
+
+		document.addEventListener('keydown', (e) => {
+			if (isStatsOpen) return;
+			const activeCardsCount = container.querySelectorAll('.card:not(.processing)').length;
+
+			if (e.key === 'ArrowRight' && activeCardsCount > 0) handleChoice('smash');
+			if (e.key === 'ArrowLeft' && activeCardsCount > 0) handleChoice('pass');
+			if (e.key === 'ArrowDown') { e.preventDefault(); undoAction(); }
+			if (e.key === 'ArrowUp') { e.preventDefault(); redoAction(); }
+		});
+
+		function renderStats() {
+			document.getElementById('smash-list').innerHTML = smashed.map(c => `<li class="stat-item"><img src="${c.imgSquare}"><span>${c.name}</span></li>`).join('');
+			document.getElementById('pass-list').innerHTML = passed.map(c => `<li class="stat-item"><img src="${c.imgSquare}"><span>${c.name}</span></li>`).join('');
+		}
+
+		btnStatsToggle.addEventListener('click', () => {
+			isStatsOpen = !isStatsOpen;
+			if (isStatsOpen) {
+				gameArea.style.display = 'none';
+				statsScreen.style.display = 'flex';
+				btnStatsToggle.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Retour au Jeu`;
+				renderStats();
+			} else {
+				statsScreen.style.display = 'none';
+				gameArea.style.display = 'flex';
+				btnStatsToggle.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg> Stats`;
+			}
+		});
+
+		fetchChampions();
+	</script>
+</body>
+
+</html>
