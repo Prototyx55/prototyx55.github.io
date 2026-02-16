@@ -6,7 +6,6 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Genshin Impact : Smash or Pass</title>
 	<style>
-		/* DA Genshin Impact : Couleurs, polices et fonds */
 		:root {
 			--genshin-dark: #1c1d2e;
 			--genshin-panel: rgba(28, 29, 46, 0.85);
@@ -38,7 +37,6 @@
 			position: relative;
 		}
 
-		/* Contrôles Haut Droite */
 		#top-controls {
 			position: absolute;
 			top: 20px;
@@ -101,7 +99,6 @@
 			height: 100%;
 		}
 
-		/* Carte Principale */
 		.tinder-container {
 			position: relative;
 			width: 310px;
@@ -137,7 +134,6 @@
 			pointer-events: none;
 		}
 
-		/* Bandeau dégradé pour le nom */
 		.champ-name {
 			width: 100%;
 			padding: 30px 20px 20px;
@@ -151,7 +147,6 @@
 			letter-spacing: 1px;
 		}
 
-		/* Boutons d'action */
 		.buttons {
 			display: flex;
 			gap: 50px;
@@ -195,7 +190,6 @@
 			border-color: rgba(255, 255, 255, 0.4);
 		}
 
-		/* Tas de cartes Historique */
 		#history-section {
 			margin-top: 25px;
 			display: flex;
@@ -328,7 +322,6 @@
 			border-radius: 5px;
 		}
 
-		/* Écran de Statistiques */
 		#stats-screen {
 			display: none;
 			flex-direction: column;
@@ -410,26 +403,6 @@
 			background-color: #111;
 		}
 
-		/* Loader Élégant */
-		#loading-bar-container {
-			width: 300px;
-			height: 6px;
-			background: #2a2d43;
-			border-radius: 3px;
-			margin-top: 15px;
-			overflow: hidden;
-			display: none;
-			box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
-		}
-
-		#loading-bar {
-			width: 0%;
-			height: 100%;
-			background: var(--genshin-gold);
-			transition: width 0.2s;
-			box-shadow: 0 0 10px var(--genshin-gold);
-		}
-
 		#shortcuts-info {
 			position: absolute;
 			bottom: 20px;
@@ -497,10 +470,6 @@
 		<h1 id="main-title">Smash or Pass</h1>
 		<div id="subtitle">Connexion à Teyvat...</div>
 
-		<div id="loading-bar-container">
-			<div id="loading-bar"></div>
-		</div>
-
 		<div class="tinder-container" id="card-container" style="display: none;"></div>
 
 		<div class="buttons" id="controls" style="display: none;">
@@ -529,11 +498,9 @@
 						<polyline points="19 12 12 19 5 12"></polyline>
 					</svg>
 				</button>
-
 				<div id="mini-history-container">
 					<div id="mini-placeholder">✦</div>
 				</div>
-
 				<button id="btn-redo" class="time-btn" title="Refaire (Flèche Haut)" disabled>
 					<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"
 						stroke-linecap="round" stroke-linejoin="round">
@@ -600,8 +567,8 @@
 		let isStatsOpen = false;
 
 		const pileAngles = [-12, 8, -6, 15, -9, 5];
+		const MAX_CARDS_IN_DOM = 4; // OPTIMISATION : On n'affiche jamais plus de 4 cartes pour fluidifier le navigateur
 
-		// Changement de la clé locale pour ne pas écraser les stats de League of Legends !
 		function saveSession() {
 			const sessionData = { remainingChampions, smashed, passed, historyStack, redoStack };
 			localStorage.setItem('genshin-smash-pass-data', JSON.stringify(sessionData));
@@ -630,22 +597,19 @@
 
 		async function fetchChampions() {
 			try {
-				// Utilisation de l'API communautaire Genshin.jmp.blue
-				const res = await fetch('https://genshin.jmp.blue/characters');
-				const champIds = await res.json();
-
 				if (!loadSession()) {
+					const res = await fetch('https://genshin.jmp.blue/characters');
+					const champIds = await res.json();
+
 					let tempDeck = champIds.map(id => {
-						// Formater le nom ("hu-tao" -> "Hu Tao")
 						let name = id.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 						return {
 							id: id,
 							name: name,
-							// On tente le portrait officiel en premier
 							imgLoading: `https://genshin.jmp.blue/characters/${id}/portrait`,
-							// Fallback sur le Splash Art complet si le portrait n'existe pas
 							imgFallback: `https://genshin.jmp.blue/characters/${id}/gacha-splash`,
-							imgSquare: `https://genshin.jmp.blue/characters/${id}/icon`
+							imgSquare: `https://genshin.jmp.blue/characters/${id}/icon`,
+							triedFallback: false
 						};
 					});
 
@@ -654,45 +618,9 @@
 					saveSession();
 				}
 
-				subtitle.innerText = "Téléchargement des données de Teyvat...";
-				document.getElementById('loading-bar-container').style.display = 'block';
+				// Plus de barre de chargement lente ! Lancement immédiat grâce au Lazy Loading.
+				launchGame();
 
-				let loadedCount = 0;
-				if (remainingChampions.length === 0) {
-					launchGame();
-				} else {
-					await Promise.all(remainingChampions.map(champ => {
-						return new Promise(resolve => {
-							const img = new Image();
-							img.src = champ.imgLoading;
-
-							img.onload = () => {
-								loadedCount++;
-								updateLoader(loadedCount, remainingChampions.length);
-								resolve();
-							};
-
-							img.onerror = () => {
-								// Système de Fallback : si le portrait plante, on charge le Gacha Splash Art
-								if (!champ.triedFallback) {
-									champ.triedFallback = true;
-									champ.imgLoading = champ.imgFallback; // On met à jour l'URL de la carte
-									img.src = champ.imgFallback;
-								} else {
-									// Si les deux plantent, on ignore ce perso pour ne pas bloquer le chargement
-									champ.failed = true;
-									loadedCount++;
-									updateLoader(loadedCount, remainingChampions.length);
-									resolve();
-								}
-							};
-						});
-					}));
-
-					// On retire les personnages dont les images sont introuvables sur l'API
-					remainingChampions = remainingChampions.filter(c => !c.failed);
-					launchGame();
-				}
 			} catch (error) {
 				console.error(error);
 				subtitle.innerText = "Erreur de connexion aux serveurs de l'Irminsul.";
@@ -700,14 +628,7 @@
 			}
 		}
 
-		function updateLoader(current, total) {
-			let percent = Math.round((current / total) * 100);
-			document.getElementById('loading-bar').style.width = `${percent}%`;
-			subtitle.innerText = `Chargement de la bannière... ${percent}%`;
-		}
-
 		function launchGame() {
-			document.getElementById('loading-bar-container').style.display = 'none';
 			topControls.style.display = 'flex';
 			controls.style.display = 'flex';
 			container.style.display = 'block';
@@ -720,12 +641,27 @@
 			checkEnd();
 		}
 
+		// OPTIMISATION : Système de Lazy Loading des images inclus directement dans la carte
 		function createCardDOM(champ) {
 			const card = document.createElement('div');
 			card.classList.add('card');
-			card.style.backgroundImage = `url('${champ.imgLoading}')`;
 			card.innerHTML = `<div class="champ-name">${champ.name}</div>`;
 			card.champData = champ;
+
+			// L'image se télécharge uniquement quand la carte est créée
+			const img = new Image();
+			img.src = champ.imgLoading;
+			img.onload = () => {
+				card.style.backgroundImage = `url('${champ.imgLoading}')`;
+			};
+			img.onerror = () => {
+				if (!champ.triedFallback) {
+					champ.triedFallback = true;
+					champ.imgLoading = champ.imgFallback; // On utilise le Gacha Splash en secours
+					card.style.backgroundImage = `url('${champ.imgFallback}')`;
+				}
+			};
+
 			card.addEventListener('mousedown', dragStart);
 			card.addEventListener('touchstart', dragStart, { passive: true });
 			return card;
@@ -733,9 +669,11 @@
 
 		function initCards() {
 			container.innerHTML = '';
-			remainingChampions.forEach(champ => {
-				container.appendChild(createCardDOM(champ));
-			});
+			// On ne charge QUE les 4 cartes du dessus pour ne pas faire exploser le navigateur
+			const startIndex = Math.max(0, remainingChampions.length - MAX_CARDS_IN_DOM);
+			for (let i = startIndex; i < remainingChampions.length; i++) {
+				container.appendChild(createCardDOM(remainingChampions[i]));
+			}
 		}
 
 		function updateCounter() {
@@ -809,6 +747,12 @@
 			remainingChampions.pop();
 			historyStack.push({ action: action, champ: champ });
 
+			// OPTIMISATION : Ajout de la carte suivante discrètement par le dessous
+			const nextIndex = remainingChampions.length - MAX_CARDS_IN_DOM;
+			if (nextIndex >= 0) {
+				container.prepend(createCardDOM(remainingChampions[nextIndex]));
+			}
+
 			if (action === 'smash') {
 				smashed.push(champ);
 				card.style.transform = `translateX(${window.innerWidth}px) rotate(30deg)`;
@@ -840,7 +784,13 @@
 			remainingChampions.push(lastAction.champ);
 
 			const card = createCardDOM(lastAction.champ);
-			container.appendChild(card);
+			container.appendChild(card); // On replace la carte tout en haut
+
+			// OPTIMISATION : Retrait de la carte tout en bas pour ne pas engorger le navigateur
+			const activeCards = container.querySelectorAll('.card:not(.processing)');
+			if (activeCards.length > MAX_CARDS_IN_DOM) {
+				activeCards[0].remove();
+			}
 
 			card.style.transform = lastAction.action === 'smash' ? `translateX(${window.innerWidth}px) rotate(30deg)` : `translateX(-${window.innerWidth}px) rotate(-30deg)`;
 			card.style.opacity = '0';
@@ -925,7 +875,6 @@
 		});
 
 		function renderStats() {
-			// Stats : On affiche l'icône carrée officielle
 			document.getElementById('smash-list').innerHTML = smashed.map(c => `<li class="stat-item"><img src="${c.imgSquare}"><span>${c.name}</span></li>`).join('');
 			document.getElementById('pass-list').innerHTML = passed.map(c => `<li class="stat-item"><img src="${c.imgSquare}"><span>${c.name}</span></li>`).join('');
 		}
