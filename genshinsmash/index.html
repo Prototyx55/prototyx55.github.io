@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Genshin Impact : Smash or Pass</title>
+	<style>
+		/* DA Genshin Impact : Couleurs, polices et fonds */
+		:root {
+			--genshin-dark: #1c1d2e;
+			--genshin-panel: rgba(28, 29, 46, 0.85);
+			--genshin-gold: #d3bc8e;
+			--genshin-gold-hover: #e9c171;
+			--genshin-text: #ece5d3;
+			--genshin-pyro: #d25842;
+			--genshin-pyro-hover: #e8644c;
+			--genshin-dendro: #61b15a;
+			--genshin-dendro-hover: #72cc6a;
+		}
+
+		* {
+			box-sizing: border-box;
+			margin: 0;
+			padding: 0;
+			font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+		}
+
+		body {
+			background: linear-gradient(135deg, #101423 0%, #1c2037 50%, #101423 100%);
+			color: var(--genshin-text);
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			height: 100vh;
+			overflow: hidden;
+			position: relative;
+		}
+
+		/* Contrôles Haut Droite */
+		#top-controls {
+			position: absolute;
+			top: 20px;
+			right: 20px;
+			display: flex;
+			gap: 10px;
+			z-index: 1000;
+		}
+
+		.top-btn {
+			background: var(--genshin-panel);
+			color: var(--genshin-gold);
+			border: 1px solid var(--genshin-gold);
+			padding: 10px 15px;
+			border-radius: 6px;
+			font-weight: bold;
+			cursor: pointer;
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+			transition: 0.2s;
+			backdrop-filter: blur(5px);
+		}
+
+		.top-btn:hover {
+			background: var(--genshin-gold);
+			color: var(--genshin-dark);
+		}
+
+		.top-btn svg {
+			width: 16px;
+			height: 16px;
+		}
+
+		h1 {
+			margin-bottom: 2px;
+			color: var(--genshin-gold);
+			text-transform: uppercase;
+			letter-spacing: 4px;
+			text-shadow: 0 0 15px rgba(211, 188, 142, 0.4);
+			text-align: center;
+			font-size: 28px;
+		}
+
+		#subtitle {
+			font-size: 14px;
+			color: #a5a8b6;
+			margin-bottom: 15px;
+			height: 20px;
+			letter-spacing: 1px;
+		}
+
+		#game-area {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			width: 100%;
+			height: 100%;
+		}
+
+		/* Carte Principale */
+		.tinder-container {
+			position: relative;
+			width: 310px;
+			height: 490px;
+			perspective: 1000px;
+		}
+
+		.card {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			border-radius: 12px;
+			background-size: cover;
+			background-position: center 15%;
+			box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+			transition: transform 0.3s ease, opacity 0.3s ease;
+			cursor: grab;
+			overflow: hidden;
+			display: flex;
+			align-items: flex-end;
+			border: 2px solid var(--genshin-gold);
+			background-color: #2a2d43;
+		}
+
+		.card.dragging {
+			transition: none;
+			cursor: grabbing;
+		}
+
+		.card.processing {
+			pointer-events: none;
+		}
+
+		/* Bandeau dégradé pour le nom */
+		.champ-name {
+			width: 100%;
+			padding: 30px 20px 20px;
+			background: linear-gradient(transparent, rgba(16, 20, 35, 0.95) 60%);
+			font-size: 26px;
+			font-weight: bold;
+			text-shadow: 2px 2px 5px #000;
+			pointer-events: none;
+			text-align: center;
+			color: #fff;
+			letter-spacing: 1px;
+		}
+
+		/* Boutons d'action */
+		.buttons {
+			display: flex;
+			gap: 50px;
+			margin-top: 25px;
+			z-index: 100;
+		}
+
+		.btn {
+			width: 60px;
+			height: 60px;
+			border-radius: 50%;
+			border: 3px solid rgba(255, 255, 255, 0.1);
+			cursor: pointer;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+			transition: transform 0.1s, background 0.2s, border-color 0.2s;
+			color: white;
+		}
+
+		.btn:active {
+			transform: scale(0.9);
+		}
+
+		.btn-pass {
+			background-color: var(--genshin-pyro);
+		}
+
+		.btn-pass:hover {
+			background-color: var(--genshin-pyro-hover);
+			border-color: rgba(255, 255, 255, 0.4);
+		}
+
+		.btn-smash {
+			background-color: var(--genshin-dendro);
+		}
+
+		.btn-smash:hover {
+			background-color: var(--genshin-dendro-hover);
+			border-color: rgba(255, 255, 255, 0.4);
+		}
+
+		/* Tas de cartes Historique */
+		#history-section {
+			margin-top: 25px;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 8px;
+			visibility: hidden;
+		}
+
+		.history-label {
+			font-size: 11px;
+			color: #a5a8b6;
+			text-transform: uppercase;
+			letter-spacing: 2px;
+			font-weight: bold;
+		}
+
+		.history-flex {
+			display: flex;
+			align-items: center;
+			gap: 30px;
+		}
+
+		.time-btn {
+			background: var(--genshin-panel);
+			color: var(--genshin-text);
+			border: 1px solid #4a4e69;
+			width: 40px;
+			height: 40px;
+			border-radius: 50%;
+			cursor: pointer;
+			transition: 0.2s;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			z-index: 10;
+			backdrop-filter: blur(5px);
+		}
+
+		.time-btn:hover:not(:disabled) {
+			background: #2a2d43;
+			border-color: var(--genshin-gold);
+			color: var(--genshin-gold);
+		}
+
+		.time-btn:disabled {
+			opacity: 0.3;
+			cursor: not-allowed;
+		}
+
+		#mini-history-container {
+			position: relative;
+			width: 65px;
+			height: 100px;
+		}
+
+		#mini-placeholder {
+			width: 100%;
+			height: 100%;
+			border-radius: 6px;
+			border: 2px dashed #4a4e69;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			color: #4a4e69;
+			font-size: 20px;
+			position: absolute;
+			z-index: 0;
+		}
+
+		.mini-card-item {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			border-radius: 6px;
+			background-size: cover;
+			background-position: center 20%;
+			border: 1px solid #4a4e69;
+			box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+			transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+			background-color: #2a2d43;
+		}
+
+		.mini-card-item.smash {
+			border-color: var(--genshin-dendro);
+			box-shadow: 0 0 12px rgba(97, 177, 90, 0.4);
+		}
+
+		.mini-card-item.pass {
+			border-color: var(--genshin-pyro);
+			box-shadow: 0 0 12px rgba(210, 88, 66, 0.4);
+		}
+
+		.mini-icon {
+			position: absolute;
+			bottom: -8px;
+			right: -8px;
+			width: 26px;
+			height: 26px;
+			border-radius: 50%;
+			align-items: center;
+			justify-content: center;
+			color: white;
+			border: 2px solid var(--genshin-dark);
+			z-index: 10;
+		}
+
+		.mini-icon.smash {
+			background: var(--genshin-dendro);
+		}
+
+		.mini-icon.pass {
+			background: var(--genshin-pyro);
+		}
+
+		.mini-icon svg {
+			width: 13px;
+			height: 13px;
+		}
+
+		.mini-overlay {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background: rgba(16, 20, 35, 0.6);
+			border-radius: 5px;
+		}
+
+		/* Écran de Statistiques */
+		#stats-screen {
+			display: none;
+			flex-direction: column;
+			align-items: center;
+			width: 100%;
+			height: 100%;
+			padding-top: 80px;
+		}
+
+		.stats-container {
+			background: var(--genshin-panel);
+			padding: 25px;
+			border-radius: 12px;
+			border: 2px solid var(--genshin-gold);
+			width: 95%;
+			max-width: 600px;
+			max-height: 80vh;
+			overflow-y: auto;
+			text-align: center;
+			backdrop-filter: blur(10px);
+			box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+		}
+
+		.stat-columns {
+			display: flex;
+			justify-content: space-between;
+			margin-top: 20px;
+			gap: 15px;
+		}
+
+		.stat-col {
+			width: 48%;
+			background: rgba(0, 0, 0, 0.3);
+			padding: 15px;
+			border-radius: 8px;
+			border: 1px solid #3a3e59;
+		}
+
+		.stat-col h3 {
+			margin-bottom: 15px;
+			position: sticky;
+			top: 0;
+			background: #1c2037;
+			padding: 10px;
+			z-index: 10;
+			border-radius: 6px;
+			border-bottom: 2px solid transparent;
+		}
+
+		.stat-list {
+			list-style: none;
+			text-align: left;
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
+		}
+
+		.stat-item {
+			display: flex;
+			align-items: center;
+			gap: 12px;
+			padding: 6px;
+			background: rgba(255, 255, 255, 0.05);
+			border-radius: 6px;
+			font-size: 14px;
+			transition: 0.2s;
+		}
+
+		.stat-item:hover {
+			background: rgba(255, 255, 255, 0.1);
+		}
+
+		.stat-item img {
+			width: 42px;
+			height: 42px;
+			border-radius: 5px;
+			border: 1px solid #4a4e69;
+			object-fit: cover;
+			background-color: #111;
+		}
+
+		/* Loader Élégant */
+		#loading-bar-container {
+			width: 300px;
+			height: 6px;
+			background: #2a2d43;
+			border-radius: 3px;
+			margin-top: 15px;
+			overflow: hidden;
+			display: none;
+			box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+		}
+
+		#loading-bar {
+			width: 0%;
+			height: 100%;
+			background: var(--genshin-gold);
+			transition: width 0.2s;
+			box-shadow: 0 0 10px var(--genshin-gold);
+		}
+
+		#shortcuts-info {
+			position: absolute;
+			bottom: 20px;
+			right: 20px;
+			background: var(--genshin-panel);
+			padding: 15px;
+			border-radius: 8px;
+			border: 1px solid #3a3e59;
+			font-size: 12px;
+			color: #a5a8b6;
+			text-align: left;
+			display: none;
+			backdrop-filter: blur(5px);
+		}
+
+		#shortcuts-info b {
+			color: var(--genshin-gold);
+			letter-spacing: 1px;
+		}
+
+		.shortcut-row {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			margin-top: 10px;
+		}
+
+		.key {
+			background: #2a2d43;
+			color: #fff;
+			padding: 3px 7px;
+			border-radius: 4px;
+			border: 1px solid #4a4e69;
+			font-size: 11px;
+			min-width: 25px;
+			text-align: center;
+			font-weight: bold;
+		}
+	</style>
+</head>
+
+<body>
+
+	<div id="top-controls" style="display: none;">
+		<button id="btn-reset" class="top-btn">
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+				stroke-linejoin="round">
+				<polyline points="3 6 5 6 21 6"></polyline>
+				<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+			</svg>
+			Réinitialiser
+		</button>
+		<button id="btn-stats-toggle" class="top-btn">
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+				stroke-linejoin="round">
+				<line x1="18" y1="20" x2="18" y2="10"></line>
+				<line x1="12" y1="20" x2="12" y2="4"></line>
+				<line x1="6" y1="20" x2="6" y2="14"></line>
+			</svg>
+			Vœux (Stats)
+		</button>
+	</div>
+
+	<div id="game-area">
+		<h1 id="main-title">Smash or Pass</h1>
+		<div id="subtitle">Connexion à Teyvat...</div>
+
+		<div id="loading-bar-container">
+			<div id="loading-bar"></div>
+		</div>
+
+		<div class="tinder-container" id="card-container" style="display: none;"></div>
+
+		<div class="buttons" id="controls" style="display: none;">
+			<button class="btn btn-pass" id="btn-pass" title="Pass (Flèche Gauche)">
+				<svg viewBox="0 0 24 24" width="30" height="30" stroke="currentColor" stroke-width="3" fill="none"
+					stroke-linecap="round" stroke-linejoin="round">
+					<path d="M18 6L6 18M6 6l12 12" />
+				</svg>
+			</button>
+			<button class="btn btn-smash" id="btn-smash" title="Smash (Flèche Droite)">
+				<svg viewBox="0 0 24 24" width="30" height="30" stroke="currentColor" stroke-width="2" fill="none"
+					stroke-linecap="round" stroke-linejoin="round">
+					<path
+						d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+				</svg>
+			</button>
+		</div>
+
+		<div id="history-section">
+			<span class="history-label">Historique des choix</span>
+			<div class="history-flex">
+				<button id="btn-undo" class="time-btn" title="Annuler (Flèche Bas)" disabled>
+					<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"
+						stroke-linecap="round" stroke-linejoin="round">
+						<line x1="12" y1="5" x2="12" y2="19"></line>
+						<polyline points="19 12 12 19 5 12"></polyline>
+					</svg>
+				</button>
+
+				<div id="mini-history-container">
+					<div id="mini-placeholder">✦</div>
+				</div>
+
+				<button id="btn-redo" class="time-btn" title="Refaire (Flèche Haut)" disabled>
+					<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"
+						stroke-linecap="round" stroke-linejoin="round">
+						<line x1="12" y1="19" x2="12" y2="5"></line>
+						<polyline points="5 12 12 5 19 12"></polyline>
+					</svg>
+				</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="shortcuts-info">
+		<b>COMMANDES</b>
+		<div class="shortcut-row"><span class="key">◀</span> Pass &nbsp; | &nbsp; <span class="key">▶</span> Smash</div>
+		<div class="shortcut-row"><span class="key">▼</span> Annuler | &nbsp; <span class="key">▲</span> Refaire</div>
+	</div>
+
+	<div id="stats-screen">
+		<div class="stats-container">
+			<h2
+				style="color: var(--genshin-gold); margin-bottom: 20px; font-size: 24px; letter-spacing: 2px; text-transform: uppercase;">
+				Vos Affinités</h2>
+			<div class="stat-columns">
+				<div class="stat-col">
+					<h3 style="color: var(--genshin-pyro); border-bottom-color: var(--genshin-pyro);">Passed (❌)</h3>
+					<ul class="stat-list" id="pass-list"></ul>
+				</div>
+				<div class="stat-col">
+					<h3 style="color: var(--genshin-dendro); border-bottom-color: var(--genshin-dendro);">Smashed (💖)
+					</h3>
+					<ul class="stat-list" id="smash-list"></ul>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script>
+		const container = document.getElementById('card-container');
+		const gameArea = document.getElementById('game-area');
+		const statsScreen = document.getElementById('stats-screen');
+		const controls = document.getElementById('controls');
+		const subtitle = document.getElementById('subtitle');
+		const topControls = document.getElementById('top-controls');
+		const btnStatsToggle = document.getElementById('btn-stats-toggle');
+		const btnReset = document.getElementById('btn-reset');
+		const shortcutsInfo = document.getElementById('shortcuts-info');
+
+		const historySection = document.getElementById('history-section');
+		const btnUndo = document.getElementById('btn-undo');
+		const btnRedo = document.getElementById('btn-redo');
+		const miniHistoryContainer = document.getElementById('mini-history-container');
+
+		const svgSmash = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
+		const svgPass = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>`;
+
+		let remainingChampions = [];
+		let smashed = [];
+		let passed = [];
+		let historyStack = [];
+		let redoStack = [];
+
+		let isDragging = false;
+		let startX = 0, currentX = 0;
+		let isStatsOpen = false;
+
+		const pileAngles = [-12, 8, -6, 15, -9, 5];
+
+		// Changement de la clé locale pour ne pas écraser les stats de League of Legends !
+		function saveSession() {
+			const sessionData = { remainingChampions, smashed, passed, historyStack, redoStack };
+			localStorage.setItem('genshin-smash-pass-data', JSON.stringify(sessionData));
+		}
+
+		function loadSession() {
+			const saved = localStorage.getItem('genshin-smash-pass-data');
+			if (saved) {
+				const data = JSON.parse(saved);
+				remainingChampions = data.remainingChampions || [];
+				smashed = data.smashed || [];
+				passed = data.passed || [];
+				historyStack = data.historyStack || [];
+				redoStack = data.redoStack || [];
+				return true;
+			}
+			return false;
+		}
+
+		btnReset.addEventListener('click', () => {
+			if (confirm("Veux-tu vraiment réinitialiser ta partie Genshin Impact ? Tu vas tout recommencer.")) {
+				localStorage.removeItem('genshin-smash-pass-data');
+				location.reload();
+			}
+		});
+
+		async function fetchChampions() {
+			try {
+				// Utilisation de l'API communautaire Genshin.jmp.blue
+				const res = await fetch('https://genshin.jmp.blue/characters');
+				const champIds = await res.json();
+
+				if (!loadSession()) {
+					let tempDeck = champIds.map(id => {
+						// Formater le nom ("hu-tao" -> "Hu Tao")
+						let name = id.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+						return {
+							id: id,
+							name: name,
+							// On tente le portrait officiel en premier
+							imgLoading: `https://genshin.jmp.blue/characters/${id}/portrait`,
+							// Fallback sur le Splash Art complet si le portrait n'existe pas
+							imgFallback: `https://genshin.jmp.blue/characters/${id}/gacha-splash`,
+							imgSquare: `https://genshin.jmp.blue/characters/${id}/icon`
+						};
+					});
+
+					tempDeck.sort(() => Math.random() - 0.5);
+					remainingChampions = tempDeck;
+					saveSession();
+				}
+
+				subtitle.innerText = "Téléchargement des données de Teyvat...";
+				document.getElementById('loading-bar-container').style.display = 'block';
+
+				let loadedCount = 0;
+				if (remainingChampions.length === 0) {
+					launchGame();
+				} else {
+					await Promise.all(remainingChampions.map(champ => {
+						return new Promise(resolve => {
+							const img = new Image();
+							img.src = champ.imgLoading;
+
+							img.onload = () => {
+								loadedCount++;
+								updateLoader(loadedCount, remainingChampions.length);
+								resolve();
+							};
+
+							img.onerror = () => {
+								// Système de Fallback : si le portrait plante, on charge le Gacha Splash Art
+								if (!champ.triedFallback) {
+									champ.triedFallback = true;
+									champ.imgLoading = champ.imgFallback; // On met à jour l'URL de la carte
+									img.src = champ.imgFallback;
+								} else {
+									// Si les deux plantent, on ignore ce perso pour ne pas bloquer le chargement
+									champ.failed = true;
+									loadedCount++;
+									updateLoader(loadedCount, remainingChampions.length);
+									resolve();
+								}
+							};
+						});
+					}));
+
+					// On retire les personnages dont les images sont introuvables sur l'API
+					remainingChampions = remainingChampions.filter(c => !c.failed);
+					launchGame();
+				}
+			} catch (error) {
+				console.error(error);
+				subtitle.innerText = "Erreur de connexion aux serveurs de l'Irminsul.";
+				subtitle.style.color = "var(--genshin-pyro)";
+			}
+		}
+
+		function updateLoader(current, total) {
+			let percent = Math.round((current / total) * 100);
+			document.getElementById('loading-bar').style.width = `${percent}%`;
+			subtitle.innerText = `Chargement de la bannière... ${percent}%`;
+		}
+
+		function launchGame() {
+			document.getElementById('loading-bar-container').style.display = 'none';
+			topControls.style.display = 'flex';
+			controls.style.display = 'flex';
+			container.style.display = 'block';
+			historySection.style.visibility = 'visible';
+			shortcutsInfo.style.display = 'block';
+
+			initCards();
+			updateHistoryUI();
+			updateCounter();
+			checkEnd();
+		}
+
+		function createCardDOM(champ) {
+			const card = document.createElement('div');
+			card.classList.add('card');
+			card.style.backgroundImage = `url('${champ.imgLoading}')`;
+			card.innerHTML = `<div class="champ-name">${champ.name}</div>`;
+			card.champData = champ;
+			card.addEventListener('mousedown', dragStart);
+			card.addEventListener('touchstart', dragStart, { passive: true });
+			return card;
+		}
+
+		function initCards() {
+			container.innerHTML = '';
+			remainingChampions.forEach(champ => {
+				container.appendChild(createCardDOM(champ));
+			});
+		}
+
+		function updateCounter() {
+			const restant = remainingChampions.length;
+			subtitle.innerText = `${restant} Personnage${restant > 1 ? 's' : ''} restant${restant > 1 ? 's' : ''}`;
+		}
+
+		function checkEnd() {
+			if (remainingChampions.length === 0) {
+				gameArea.style.display = 'none';
+				statsScreen.style.display = 'flex';
+				btnStatsToggle.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Retour au Jeu`;
+				isStatsOpen = true;
+				renderStats();
+			}
+		}
+
+		function dragStart(e) {
+			const activeCards = container.querySelectorAll('.card:not(.processing)');
+			if (activeCards.length === 0 || e.target !== activeCards[activeCards.length - 1] || isStatsOpen) return;
+			isDragging = true;
+			startX = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
+			e.target.classList.add('dragging');
+
+			document.addEventListener('mousemove', drag);
+			document.addEventListener('touchmove', drag, { passive: true });
+			document.addEventListener('mouseup', dragEnd);
+			document.addEventListener('touchend', dragEnd);
+		}
+
+		function drag(e) {
+			if (!isDragging) return;
+			const x = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
+			currentX = x - startX;
+			const activeCards = container.querySelectorAll('.card:not(.processing)');
+			if (activeCards.length > 0) activeCards[activeCards.length - 1].style.transform = `translateX(${currentX}px) rotate(${currentX * 0.05}deg)`;
+		}
+
+		function dragEnd(e) {
+			if (!isDragging) return;
+			isDragging = false;
+
+			const activeCards = container.querySelectorAll('.card:not(.processing)');
+			if (activeCards.length === 0) return;
+
+			const card = activeCards[activeCards.length - 1];
+			card.classList.remove('dragging');
+
+			document.removeEventListener('mousemove', drag);
+			document.removeEventListener('touchmove', drag);
+			document.removeEventListener('mouseup', dragEnd);
+			document.removeEventListener('touchend', dragEnd);
+
+			if (currentX > 100) handleChoice('smash');
+			else if (currentX < -100) handleChoice('pass');
+			else card.style.transform = `translateX(0px) rotate(0deg)`;
+			currentX = 0;
+		}
+
+		function handleChoice(action, isRedo = false) {
+			const activeCards = container.querySelectorAll('.card:not(.processing)');
+			if (activeCards.length === 0) return;
+
+			const card = activeCards[activeCards.length - 1];
+			const champ = card.champData;
+
+			card.classList.add('processing');
+
+			if (!isRedo) redoStack = [];
+
+			remainingChampions.pop();
+			historyStack.push({ action: action, champ: champ });
+
+			if (action === 'smash') {
+				smashed.push(champ);
+				card.style.transform = `translateX(${window.innerWidth}px) rotate(30deg)`;
+			} else {
+				passed.push(champ);
+				card.style.transform = `translateX(-${window.innerWidth}px) rotate(-30deg)`;
+			}
+			card.style.opacity = '0';
+
+			saveSession();
+			updateCounter();
+			updateHistoryUI();
+
+			setTimeout(() => {
+				if (card.parentNode === container) card.remove();
+				checkEnd();
+			}, 300);
+		}
+
+		function undoAction() {
+			if (historyStack.length === 0 || isStatsOpen) return;
+
+			const lastAction = historyStack.pop();
+
+			if (lastAction.action === 'smash') smashed = smashed.filter(c => c.id !== lastAction.champ.id);
+			else passed = passed.filter(c => c.id !== lastAction.champ.id);
+
+			redoStack.push(lastAction);
+			remainingChampions.push(lastAction.champ);
+
+			const card = createCardDOM(lastAction.champ);
+			container.appendChild(card);
+
+			card.style.transform = lastAction.action === 'smash' ? `translateX(${window.innerWidth}px) rotate(30deg)` : `translateX(-${window.innerWidth}px) rotate(-30deg)`;
+			card.style.opacity = '0';
+
+			void card.offsetWidth;
+
+			card.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s';
+			card.style.transform = 'translateX(0px) rotate(0deg)';
+			card.style.opacity = '1';
+
+			saveSession();
+			updateHistoryUI();
+			updateCounter();
+		}
+
+		function redoAction() {
+			if (redoStack.length === 0 || isStatsOpen) return;
+			const nextAction = redoStack.pop();
+			const card = createCardDOM(nextAction.champ);
+			container.appendChild(card);
+			void card.offsetWidth;
+			handleChoice(nextAction.action, true);
+		}
+
+		function updateHistoryUI() {
+			miniHistoryContainer.innerHTML = '<div id="mini-placeholder">✦</div>';
+
+			if (historyStack.length > 0) {
+				document.getElementById('mini-placeholder').style.display = 'none';
+
+				const maxPileCards = 4;
+				const startIndex = Math.max(0, historyStack.length - maxPileCards);
+				const pileToRender = historyStack.slice(startIndex);
+
+				pileToRender.forEach((item, index) => {
+					const isTopCard = index === pileToRender.length - 1;
+
+					const cardDiv = document.createElement('div');
+					cardDiv.className = `mini-card-item ${isTopCard ? item.action : ''}`;
+					cardDiv.style.backgroundImage = `url('${item.champ.imgLoading}')`;
+					cardDiv.style.zIndex = index + 1;
+
+					if (!isTopCard) {
+						const angle = pileAngles[(startIndex + index) % pileAngles.length];
+						cardDiv.style.transform = `rotate(${angle}deg)`;
+
+						const overlay = document.createElement('div');
+						overlay.className = 'mini-overlay';
+						cardDiv.appendChild(overlay);
+					} else {
+						cardDiv.style.transform = `rotate(0deg)`;
+						const iconBadge = document.createElement('div');
+						iconBadge.className = `mini-icon ${item.action}`;
+						iconBadge.innerHTML = item.action === 'smash' ? svgSmash : svgPass;
+						iconBadge.style.display = 'flex';
+						cardDiv.appendChild(iconBadge);
+					}
+
+					miniHistoryContainer.appendChild(cardDiv);
+				});
+			} else {
+				document.getElementById('mini-placeholder').style.display = 'flex';
+			}
+
+			btnUndo.disabled = historyStack.length === 0;
+			btnRedo.disabled = redoStack.length === 0;
+		}
+
+		document.getElementById('btn-pass').addEventListener('click', () => { if (!isStatsOpen) handleChoice('pass') });
+		document.getElementById('btn-smash').addEventListener('click', () => { if (!isStatsOpen) handleChoice('smash') });
+		btnUndo.addEventListener('click', undoAction);
+		btnRedo.addEventListener('click', redoAction);
+
+		document.addEventListener('keydown', (e) => {
+			if (isStatsOpen) return;
+			const activeCardsCount = container.querySelectorAll('.card:not(.processing)').length;
+
+			if (e.key === 'ArrowRight' && activeCardsCount > 0) handleChoice('smash');
+			if (e.key === 'ArrowLeft' && activeCardsCount > 0) handleChoice('pass');
+			if (e.key === 'ArrowDown') { e.preventDefault(); undoAction(); }
+			if (e.key === 'ArrowUp') { e.preventDefault(); redoAction(); }
+		});
+
+		function renderStats() {
+			// Stats : On affiche l'icône carrée officielle
+			document.getElementById('smash-list').innerHTML = smashed.map(c => `<li class="stat-item"><img src="${c.imgSquare}"><span>${c.name}</span></li>`).join('');
+			document.getElementById('pass-list').innerHTML = passed.map(c => `<li class="stat-item"><img src="${c.imgSquare}"><span>${c.name}</span></li>`).join('');
+		}
+
+		btnStatsToggle.addEventListener('click', () => {
+			isStatsOpen = !isStatsOpen;
+			if (isStatsOpen) {
+				gameArea.style.display = 'none';
+				statsScreen.style.display = 'flex';
+				btnStatsToggle.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Retour au Jeu`;
+				renderStats();
+			} else {
+				statsScreen.style.display = 'none';
+				gameArea.style.display = 'flex';
+				btnStatsToggle.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg> Vœux (Stats)`;
+			}
+		});
+
+		fetchChampions();
+	</script>
+</body>
+
+</html>
